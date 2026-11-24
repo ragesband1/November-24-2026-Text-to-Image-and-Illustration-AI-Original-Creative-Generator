@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text to Image and Illustration AI — Original Creative Generator</title>
+  <style>
+    :root {
+      --bg-main: #120f1d;
+      --bg-sidebar: #191528;
+      --bg-card: #221d36;
+      --bg-input: #2b2444;
+      --border: #3b325c;
+      --text-primary: #faf5ff;
+      --text-secondary: #b8aed6;
+      --accent: #c084fc;
+      --accent-2: #f472b6;
+      --gold: #fbbf24;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg-main); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar {
+      width: 295px; background: var(--bg-sidebar); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; transition: width 0.25s ease;
+    }
+    .sidebar.collapsed { width: 0; overflow: hidden; border-right: none; }
+
+    .brand-box { padding: 18px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .brand-title { font-size: 0.95rem; font-weight: 800; line-height: 1.25; color: #fff; }
+    .brand-sub { font-size: 0.72rem; color: var(--accent); }
+
+    .sidebar-actions { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .btn-new {
+      background: linear-gradient(135deg, #a855f7, #ec4899); color: #fff; border: none; padding: 10px;
+      border-radius: 8px; font-weight: 700; cursor: pointer;
+    }
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+      color: #fff; padding: 8px 12px 8px 32px; border-radius: 8px; font-size: 0.82rem; outline: none;
+    }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--text-secondary); }
+
+    .history-label { padding: 8px 16px 4px; font-size: 0.72rem; text-transform: uppercase; color: var(--text-secondary); }
+    .history-list { flex: 1; overflow-y: auto; padding: 6px 10px; display: flex; flex-direction: column; gap: 6px; }
+    .history-item {
+      padding: 10px; border-radius: 8px; border: 1px solid transparent; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .history-item:hover, .history-item.active { background: var(--bg-card); border-color: var(--border); }
+    .history-text { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+    .history-time { font-size: 0.68rem; color: var(--text-secondary); margin-top: 3px; }
+    .btn-del { background: none; border: none; color: #fb7185; cursor: pointer; font-size: 0.75rem; }
+
+    .sidebar-footer { padding: 12px; border-top: 1px solid var(--border); font-size: 0.74rem; color: var(--text-secondary); }
+
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      height: 60px; border-bottom: 1px solid var(--border); padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between; background: var(--bg-sidebar);
+    }
+    .toggle-btn {
+      background: var(--bg-input); border: 1px solid var(--border); color: #fff;
+      padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+    }
+    .plan-badge {
+      padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+      border: 1px solid var(--accent); color: var(--accent); cursor: pointer;
+    }
+    .plan-badge.premium { border-color: var(--gold); color: var(--gold); }
+
+    .chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; max-width: 940px; width: 100%; margin: 0 auto; }
+    .welcome-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 26px; text-align: center;
+    }
+    .welcome-card h1 { font-size: 1.45rem; margin-bottom: 8px; }
+    .welcome-card p { font-size: 0.88rem; color: var(--text-secondary); max-width: 650px; margin: 0 auto 16px; }
+    .quick-prompts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .chip {
+      background: var(--bg-input); border: 1px solid var(--border); color: #fff;
+      padding: 7px 12px; border-radius: 20px; font-size: 0.78rem; cursor: pointer;
+    }
+    .chip:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+    .msg { display: flex; gap: 14px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.78rem; flex-shrink: 0;
+    }
+    .avatar.user { background: #3b325c; color: #fff; }
+    .avatar.ai { background: linear-gradient(135deg, #c084fc, #f472b6); color: #120f1d; }
+    .msg-body { background: var(--bg-card); border: 1px solid var(--border); padding: 14px 18px; border-radius: 12px; flex: 1; }
+    .msg-meta { font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .msg-text { font-size: 0.9rem; line-height: 1.55; margin-bottom: 12px; }
+
+    .art-frame { background: #0c0a14; border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+    .art-frame img { max-width: 100%; border-radius: 8px; }
+    .art-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 0.78rem; color: var(--text-secondary); }
+    .btn-dl { background: linear-gradient(135deg, #c084fc, #f472b6); color: #120f1d; padding: 6px 12px; border-radius: 6px; font-weight: 700; text-decoration: none; }
+
+    .input-area { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg-sidebar); }
+    .input-box {
+      max-width: 940px; margin: 0 auto; display: flex; gap: 10px; background: var(--bg-input);
+      border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px;
+    }
+    .input-box select { background: var(--bg-card); color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 8px; font-size: 0.8rem; }
+    .input-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 0.92rem; outline: none; }
+    .btn-send { background: linear-gradient(135deg, #a855f7, #ec4899); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 50; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 500px; width: 92%; }
+    .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .plan-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; padding: 14px; cursor: pointer; }
+    .plan-card:hover { border-color: var(--gold); }
+    .plan-price { font-size: 1.2rem; font-weight: 800; color: var(--gold); margin: 6px 0; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand-box">
+      <!-- Original Custom SVG Logo 3: Artistic Spark & Canvas Frame -->
+      <svg width="38" height="38" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="8" width="48" height="48" rx="14" fill="#C084FC" fill-opacity="0.18" stroke="#C084FC" stroke-width="2.5"/>
+        <path d="M32 16C34 26 38 30 48 32C38 34 34 38 32 48C30 38 26 34 16 32C26 30 30 26 32 16Z" fill="#F472B6" stroke="#FAF5FF" stroke-width="1.5"/>
+      </svg>
+      <div>
+        <div class="brand-title">Text to Image and Illustration AI</div>
+        <div class="brand-sub">Visual Artwork Synthesizer</div>
+      </div>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn-new" onclick="createNewSession()">+ New Canvas Prompt</button>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search illustrations..." oninput="renderHistory()" />
+      </div>
+    </div>
+
+    <div class="history-label">Saved Artwork History</div>
+    <div class="history-list" id="historyList"></div>
+
+    <div class="sidebar-footer">
+      <div style="color:#f472b6; font-weight:600;">● Local Offline Persistence</div>
+      <div id="clockDisplay" style="margin-top:4px;"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="toggle-btn" onclick="toggleSidebar()">☰ History</button>
+        <strong>Text to Image and Illustration AI</strong>
+      </div>
+      <span class="plan-badge" id="planStatusBadge" onclick="openPremiumModal()">Plan: Creator Free</span>
+    </header>
+
+    <section class="chat-container" id="chatContainer"></section>
+
+    <footer class="input-area">
+      <form class="input-box" onsubmit="handleGenerate(event)">
+        <select id="styleSelect">
+          <option value="Watercolor Wash Illustration">Watercolor Wash</option>
+          <option value="Vector Pop-Art Illustration">Vector Pop-Art</option>
+          <option value="Pastel Concept Art">Pastel Concept Art</option>
+          <option value="Ink & Line-Art Sketch">Ink & Line-Art</option>
+        </select>
+        <input type="text" id="promptInput" placeholder="Describe an image or illustration to render..." required />
+        <button type="submit" class="btn-send">Generate Art</button>
+      </form>
+    </footer>
+  </main>
+
+  <div class="modal-backdrop" id="premiumModal">
+    <div class="modal">
+      <h2>Text to Image and Illustration AI — Plans</h2>
+      <p style="font-size:0.84rem; color:var(--text-secondary);">Switch between Free, Monthly, or Yearly studio access anytime.</p>
+      <div class="plans">
+        <div class="plan-card" onclick="selectPlan('Creator Free', false)">
+          <strong>Creator Free</strong>
+          <div class="plan-price">₱0 / Free</div>
+          <p style="font-size:0.78rem; color:var(--text-secondary);">Offline text-to-illustration generation & history.</p>
+        </div>
+        <div class="plan-card" onclick="selectPlan('Artist Monthly (₱299/mo)', true)">
+          <strong>Artist Monthly</strong>
+          <div class="plan-price">₱299 / Month</div>
+          <p style="font-size:0.78rem; color:var(--text-secondary);">HD canvas export & rich color blending.</p>
+        </div>
+        <div class="plan-card" style="grid-column:span 2;" onclick="selectPlan('Studio Yearly (₱2,599/yr)', true)">
+          <strong>Studio Yearly Pass</strong>
+          <div class="plan-price">₱2,599 / Year</div>
+          <p style="font-size:0.78rem; color:var(--text-secondary);">Full annual access for design students and illustrators.</p>
+        </div>
+      </div>
+      <div style="text-align:right;"><button class="toggle-btn" onclick="closePremiumModal()">Close</button></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'text_to_image_ai_sessions_v1';
+    const PLAN_KEY = 'text_to_image_ai_plan_v1';
+
+    let sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    let currentSessionId = sessions.length ? sessions[0].id : null;
+    let currentPlan = JSON.parse(localStorage.getItem(PLAN_KEY) || '{"name":"Creator Free","isPremium":false}');
+
+    setInterval(() => { document.getElementById('clockDisplay').textContent = new Date().toLocaleString(); }, 1000);
+    document.getElementById('clockDisplay').textContent = new Date().toLocaleString();
+
+    function applyPlanUI() {
+      const b = document.getElementById('planStatusBadge');
+      b.textContent = `Plan: ${currentPlan.name}`;
+      b.classList.toggle('premium', currentPlan.isPremium);
+    }
+    function openPremiumModal() { document.getElementById('premiumModal').classList.add('open'); }
+    function closePremiumModal() { document.getElementById('premiumModal').classList.remove('open'); }
+    function selectPlan(name, isPremium) {
+      currentPlan = { name, isPremium };
+      localStorage.setItem(PLAN_KEY, JSON.stringify(currentPlan));
+      applyPlanUI();
+      closePremiumModal();
+    }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+    function useSample(t) { document.getElementById('promptInput').value = t; }
+
+    function createNewSession() {
+      const id = 't2i_' + Date.now();
+      sessions.unshift({ id, title: 'New Illustration', createdAt: new Date().toLocaleString(), messages: [] });
+      currentSessionId = id;
+      saveSessions(); renderHistory(); renderMessages();
+    }
+    function saveSessions() { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); }
+    function deleteSession(e, id) {
+      e.stopPropagation();
+      sessions = sessions.filter(s => s.id !== id);
+      if (currentSessionId === id) currentSessionId = sessions.length ? sessions[0].id : null;
+      saveSessions(); renderHistory(); renderMessages();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      list.innerHTML = '';
+      const filtered = sessions.filter(s => s.title.toLowerCase().includes(q) || s.messages.some(m => m.prompt.toLowerCase().includes(q)));
+      if (!filtered.length) {
+        list.innerHTML = `<div style="padding:12px; font-size:0.78rem; color:var(--text-secondary);">No saved artwork yet.</div>`;
+        return;
+      }
+      filtered.forEach(sess => {
+        const div = document.createElement('div');
+        div.className = 'history-item' + (sess.id === currentSessionId ? ' active' : '');
+        div.onclick = () => { currentSessionId = sess.id; renderHistory(); renderMessages(); };
+        div.innerHTML = `
+          <div>
+            <div class="history-text">${escapeHtml(sess.title)}</div>
+            <div class="history-time">${sess.createdAt}</div>
+          </div>
+          <button class="btn-del" onclick="deleteSession(event, '${sess.id}')">✕</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function generateArtwork(prompt, style, isPremium) {
+      const canvas = document.createElement('canvas');
+      const w = isPremium ? 960 : 720;
+      const h = isPremium ? 540 : 405;
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      let hVal = 2166136261;
+      for (let i = 0; i < prompt.length; i++) {
+        hVal ^= prompt.charCodeAt(i);
+        hVal = Math.imul(hVal, 16777619);
+      }
+      const rand = () => {
+        hVal += 0x6D2B79F5;
+        let t = Math.imul(hVal ^ (hVal >>> 15), 1 | hVal);
+        t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+
+      const baseHue = Math.floor(rand() * 360);
+      ctx.fillStyle = style === 'Ink & Line-Art Sketch' ? '#faf8f5' : `hsl(${baseHue}, 45%, 14%)`;
+      ctx.fillRect(0, 0, w, h);
+
+      // Soft Watercolor / Pastel Blobs
+      for (let i = 0; i < 16; i++) {
+        const cx = rand() * w, cy = rand() * h, r = 50 + rand() * 160;
+        const grad = ctx.createRadialGradient(cx, cy, 5, cx, cy, r);
+        const hue = (baseHue + i * 28) % 360;
+        if (style === 'Ink & Line-Art Sketch') {
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r * 0.5, 0, Math.PI * (0.8 + rand() * 1.2));
+          ctx.stroke();
+        } else {
+          grad.addColorStop(0, `hsla(${hue}, 85%, 65%, 0.55)`);
+          grad.addColorStop(1, `hsla(${hue}, 85%, 65%, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Stylized Horizon & Sun/Moon Illustration
+      const sunX = w * (0.25 + rand() * 0.5);
+      const sunY = h * (0.25 + rand() * 0.25);
+      ctx.fillStyle = style === 'Ink & Line-Art Sketch' ? '#f43f5e' : '#fef08a';
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 42, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Layered Stylized Hills
+      for (let layer = 0; layer < 3; layer++) {
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        const baseH = h * (0.55 + layer * 0.12);
+        for (let x = 0; x <= w; x += 30) {
+          const y = baseH - Math.sin(x * 0.008 + layer * 2 + rand()) * 45;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fillStyle = style === 'Ink & Line-Art Sketch'
+          ? `rgba(30, 41, 59, ${0.15 + layer * 0.2})`
+          : `hsla(${(baseHue + 180 + layer * 25) % 360}, 65%, ${28 - layer * 6}%, 0.85)`;
+        ctx.fill();
+      }
+
+      ctx.fillStyle = 'rgba(18, 15, 29, 0.82)';
+      ctx.fillRect(16, h - 50, w - 32, 34);
+      ctx.fillStyle = '#faf5ff';
+      ctx.font = 'bold 13px Segoe UI, sans-serif';
+      ctx.fillText(`TEXT TO IMAGE & ILLUSTRATION AI • ${style.toUpperCase()} • "${prompt.slice(0, 48)}"`, 26, h - 28);
+
+      return canvas.toDataURL('image/png');
+    }
+
+    function handleGenerate(e) {
+      e.preventDefault();
+      const input = document.getElementById('promptInput');
+      const style = document.getElementById('styleSelect').value;
+      const prompt = input.value.trim();
+      if (!prompt) return;
+      if (!currentSessionId) createNewSession();
+
+      const sess = sessions.find(s => s.id === currentSessionId);
+      if (sess.messages.length === 0) sess.title = prompt;
+
+      sess.messages.push({
+        prompt,
+        style,
+        timestamp: new Date().toLocaleString(),
+        imageDataUrl: generateArtwork(prompt, style, currentPlan.isPremium)
+      });
+
+      saveSessions(); renderHistory(); renderMessages();
+      input.value = '';
+    }
+
+    function renderMessages() {
+      const container = document.getElementById('chatContainer');
+      const sess = sessions.find(s => s.id === currentSessionId);
+      if (!sess || !sess.messages.length) {
+        container.innerHTML = `
+          <div class="welcome-card">
+            <h1>Text to Image and Illustration AI</h1>
+            <p>Transform your written ideas into custom digital illustrations and visual concepts. Built with offline local storage, real-time timestamps, and downloadable high-resolution artwork.</p>
+            <div class="quick-prompts">
+              <button class="chip" onclick="useSample('Sunset mountain horizon with pastel watercolor clouds')">🌅 Pastel Sunset Horizon</button>
+              <button class="chip" onclick="useSample('Vibrant pop-art geometric sun over ocean waves')">🎨 Pop-Art Ocean Waves</button>
+              <button class="chip" onclick="useSample('Minimalist ink line-art landscape for book cover illustration')">✒️ Ink Book Cover Sketch</button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      sess.messages.forEach((m, i) => {
+        container.innerHTML += `
+          <div class="msg">
+            <div class="avatar user">YOU</div>
+            <div class="msg-body">
+              <div class="msg-meta"><span>Text Prompt • ${escapeHtml(m.style)}</span><span>${m.timestamp}</span></div>
+              <div class="msg-text">${escapeHtml(m.prompt)}</div>
+            </div>
+          </div>
+          <div class="msg">
+            <div class="avatar ai">ART</div>
+            <div class="msg-body">
+              <div class="msg-meta"><span>Illustration Generator</span><span>Archived Offline ✓</span></div>
+              <div class="msg-text">Created original <strong>${escapeHtml(m.style)}</strong> illustration from your text description.</div>
+              <div class="art-frame">
+                <img src="${m.imageDataUrl}" alt="Generated Illustration" />
+                <div class="art-controls">
+                  <span>Illustration #${i + 1}</span>
+                  <a class="btn-dl" href="${m.imageDataUrl}" download="Illustration_AI_${i + 1}.png">⬇ Download PNG</a>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    applyPlanUI(); renderHistory(); renderMessages();
+  </script>
+</body>
+</html>
